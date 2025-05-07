@@ -1,0 +1,42 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+
+data <- read_excel("/Users/zhujinhong/Desktop/dataset.xlsx") 
+
+data$Time <- as.Date(data$Time)
+
+data <- data %>%
+  mutate(color_group = case_when(
+    County == "Peoria" ~ "Peoria",
+    County == "St. Clair" ~ "StClair",
+    County == "Champaign" ~ "Champaign",
+    County == "Vermilion" ~ "Vermilion",
+    TRUE ~ "Other"
+  ))
+
+ggplot(data, aes(x = Time, y = sexual_crime , group = County)) +
+  geom_line(aes(color = color_group), size = 1) +
+  geom_point(aes(color = color_group), shape = 16, size = 1) +
+  scale_color_manual(values = c(
+    "Peoria" = "red",
+    "StClair" = "blue",
+    "Champaign"="orange",
+    "Vermilion"="purple",
+    "Other" = "gray80"
+    
+  )) +
+  labs(title = "Sexual Crime by County",
+       x = "Time",
+       y = "Sexual Crime",
+       color = NULL) +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10),
+        legend.position = "right")
+```
+
