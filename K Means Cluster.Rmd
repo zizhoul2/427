@@ -1,0 +1,74 @@
+---
+title: "second"
+author: "Jinhong Zhu"
+date: "2025-02-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+```{r}
+library(tidyverse)
+data=read.csv('/Users/zhujinhong/Desktop/final_merged_data.csv') %>% filter(Year==2020 & County!="Cook")
+```
+
+
+
+
+```{r}
+data_cluster <- data %>%
+  select(percent_rural, region, Median_Household_Income, population)
+```
+
+```{r}
+data_cluster$region <- as.numeric(factor(data_cluster$region))
+```
+
+
+```{r}
+
+data_cluster <- na.omit(data_cluster)
+```
+
+
+```{r}
+
+data_scaled <- scale(data_cluster)
+```
+
+
+```{r}
+library(factoextra)
+
+
+set.seed(1)
+wss <- numeric(10)  
+for (k in 1:10) {
+    kmeans_result <- kmeans(data_scaled, centers = k, nstart = 25)
+    wss[k] <- kmeans_result$tot.withinss
+}
+plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of Clusters K",
+     ylab = "Total Within-Cluster Sum of Squares",
+     main = "Elbow Method for Finding Optimal K")
+```
+
+
+
+```{r}
+k <- 7
+kmeans_result <- kmeans(data_scaled, centers = k, nstart = 25)
+data_cluster$cluster <- kmeans_result$cluster
+print(data_cluster$cluster)
+table(data_cluster$cluster)
+data_cluster$county <- data$County  
+print(data_cluster$county[data_cluster$cluster == 3])
+```
+
+ 
+
+
