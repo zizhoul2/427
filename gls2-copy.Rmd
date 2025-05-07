@@ -1,0 +1,273 @@
+---
+title: "GLS"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
+    toc_depth: 2
+date: "2025-04-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+data <- read_excel("dataset.xlsx") 
+```
+
+```{r}
+colnames(data)
+```
+
+# linear regression
+
+```{r}
+
+model <- lm(sexual_crime ~ County+poor_mental_health_days+excessive_drinking_rate+adult_smoking_rate+unemployment_rate+median_household_income+uninsured+mental_health_providers, data = data)
+summary(model)
+```
+
+4 significant: Adult_smoking_rate + unemployment_rate + uninsured + mental.health.providers
+
+**diagnostics**
+
+```{r}
+library(lmtest)
+dwtest(model) # true autocorrelation is greater than 0
+```
+
+```{r}
+data$Time <- as.numeric(as.factor(data$Time))
+plot(x = data$Time,y = model$residuals)
+```
+
+```{r}
+plot(model) # increasing variance
+```
+
+
+
+# 1a: GLS AR1
+
+```{r}
+library(tidyverse)
+data$Time <- as.numeric(as.factor(data$Time))
+library(nlme)
+mod_gls_1a <- gls(sexual_crime ~ County + poor_mental_health_days + excessive_drinking_rate +
+               adult_smoking_rate + unemployment_rate + 
+               uninsured + mental_health_providers, 
+               data = data, 
+               correlation = corAR1(form = ~ Time | County), 
+               method = "ML")
+summary(mod_gls_1a)
+```
+
+0 variable significant
+
+**diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+acf(mod_gls_1a$residuals, main = "ACF of GLS Residuals")
+pacf(mod_gls_1a$residuals, main = "PACF of GLS Residuals")
+```
+
+```{r}
+plot(mod_gls_1a$residuals ~ data$Time,
+     xlab = "Time", ylab = "residuals")
+```
+
+```{r}
+plot(mod_gls_1a) # increasing variance
+```
+
+
+
+# 1b ARMA(1,1)
+
+```{r}
+library(nlme)
+mod_gls_1b <- gls(sexual_crime ~ County + poor_mental_health_days + excessive_drinking_rate +
+               adult_smoking_rate + unemployment_rate + 
+               uninsured + mental_health_providers, 
+               data = data, 
+               correlation = corARMA(p = 1, q = 1, form = ~ Time | County), 
+               method = "ML")
+summary(mod_gls_1b)
+```
+
+0 variable significant
+
+**diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+acf(mod_gls_1b$residuals, main = "ACF of GLS Residuals")
+pacf(mod_gls_1b$residuals, main = "PACF of GLS Residuals")
+```
+
+```{r}
+plot(mod_gls_1b$residuals ~ data$Time,
+     xlab = "Time", ylab = "residuals")
+```
+
+```{r}
+plot(mod_gls_1b) # increasing variance
+```
+
+# 1c ARIMA(1,1,1)
+
+```{r}
+library(nlme)
+
+data$Diff_sexual_crime <- ave(data$sexual_crime, data$County, FUN = function(x) c(NA, diff(x)))
+
+data_diff <- na.omit(data)
+
+mod_gls_1c <- gls(Diff_sexual_crime ~ County + poor_mental_health_days + excessive_drinking_rate +
+               adult_smoking_rate + unemployment_rate + median_household_income + 
+               uninsured + mental_health_providers, 
+               data = data_diff, 
+               correlation = corARMA(p = 1, q = 1, form = ~ Time | County), 
+               method = "ML")
+
+summary(mod_gls_1c)
+```
+
+0 variable significant
+
+
+**diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+acf(mod_gls_1c$residuals, main = "ACF of GLS Residuals")
+pacf(mod_gls_1c$residuals, main = "PACF of GLS Residuals")
+```
+
+
+```{r}
+plot(mod_gls_1c) # increasing variance
+```
+
+
+# 2a GLS with log, AR1
+
+```{r}
+data$log_crime <- log1p(data$sexual_crime)
+
+mod_gls_log_2a <- gls(log_crime ~ County + adult_smoking_rate + unemployment_rate + 
+                   poor_mental_health_days + excessive_drinking_rate + 
+                   uninsured + mental_health_providers, 
+                   data = data, 
+                   correlation = corAR1(form = ~ Time | County), 
+                   method = "ML")
+summary(mod_gls_log_2a)
+```
+
+0 variable significant
+
+**diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+acf(mod_gls_log_2a$residuals, main = "ACF of log GLS Residuals")
+pacf(mod_gls_log_2a$residuals, main = "PACF of log GLS Residuals")
+```
+
+```{r}
+plot(mod_gls_log_2a$residuals ~ data$Time,
+     xlab = "Time", ylab = "residuals")
+```
+
+```{r}
+plot(mod_gls_log_2a) # homoscedasticity
+```
+
+
+
+# 2b  GLS with log, ARMA(1,1)
+
+```{r}
+data$log_crime <- log1p(data$sexual_crime)
+
+library(nlme)
+
+mod_gls_log_2b <- gls(log_crime ~ County + adult_smoking_rate + unemployment_rate + 
+                   poor_mental_health_days + excessive_drinking_rate + 
+                   uninsured + mental_health_providers, 
+                   data = data, 
+                   correlation = corARMA(p = 1, q = 1, form = ~ Time | County), 
+                   method = "ML")
+
+summary(mod_gls_log_2b)
+
+```
+
+0 variable significant
+
+**diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+acf(mod_gls_log_2b$residuals, main = "ACF of log GLS Residuals")
+pacf(mod_gls_log_2b$residuals, main = "PACF of log GLS Residuals")
+```
+
+```{r}
+plot(mod_gls_log_2b$residuals ~ data$Time,
+     xlab = "Time", ylab = "residuals")
+```
+
+```{r}
+plot(mod_gls_log_2b) # homoscedasticity
+```
+
+
+
+# 2c  GLS with log, ARIMA(1,1,1)
+
+```{r}
+library(tidyverse)
+library(nlme)
+
+data <- data %>% arrange(County, Time)
+data$Time <- as.Date(data$Time)
+
+data$log_crime <- log1p(data$sexual_crime)
+
+data <- data %>%
+  group_by(County) %>%
+  mutate(diff_log_crime = c(NA, diff(log_crime))) %>%
+  ungroup()
+
+data_diff <- data %>% filter(!is.na(diff_log_crime))
+
+mod_gls_arima_2c <- gls(diff_log_crime ~ County + adult_smoking_rate + unemployment_rate +
+                     poor_mental_health_days + excessive_drinking_rate + 
+                     uninsured + mental_health_providers, 
+                     data = data_diff,
+                     correlation = corARMA(p = 1, q = 1, form = ~ Time | County),
+                     method = "ML")
+
+summary(mod_gls_arima_2c)
+```
+
+0 variable significant
+
+**diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+acf(mod_gls_arima_2c$residuals, main = "ACF of GLS Residuals")
+pacf(mod_gls_arima_2c$residuals, main = "PACF of GLS Residuals")
+```
+
+```{r}
+plot(mod_gls_arima_2c) # homoscedasticity
+```
+
+
