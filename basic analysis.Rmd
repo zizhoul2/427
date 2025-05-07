@@ -1,0 +1,56 @@
+---
+title: "427-update"
+author: "Jinhong Zhu"
+date: "2025-03-25"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(writexl)
+library(readxl)  
+library(dplyr)    
+
+data <- read_excel("/Users/zhujinhong/Desktop/dataset.xlsx") 
+
+
+
+mean_crime <- mean(data$crime_per_10000, na.rm = TRUE)
+
+
+median_crime <- median(data$crime_per_10000, na.rm = TRUE)
+
+
+max_crime <- max(data$crime_per_10000, na.rm = TRUE)
+min_crime <- min(data$crime_per_10000, na.rm = TRUE)
+
+
+sd_crime <- sd(data$crime_per_10000, na.rm = TRUE)
+
+
+quantiles <- quantile(data$crime_per_10000, na.rm = TRUE)
+
+
+summary_stats <- summary(data$crime_per_10000)
+
+
+cat("Mean:", mean_crime, "\n")
+cat("Median:", median_crime, "\n")
+cat("Min:", min_crime, "\n")
+cat("Max:", max_crime, "\n")
+cat("SD:", sd_crime, "\n")
+cat("Quantiles:\n")
+print(quantiles)
+
+
+
+
+
+
+```
+
