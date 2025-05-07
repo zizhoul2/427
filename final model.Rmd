@@ -1,0 +1,164 @@
+---
+title: "GEE"
+output:
+  pdf_document: 
+   latex_engine: xelatex
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)    
+library(tempdisagg)   
+library(lubridate)    
+library(geepack)      
+library(qif)          
+```
+
+---
+
+
+```{r}
+preprocess = function(county_data, pop, predictors, response) {
+  monthly_ts = ts(county_data$population * pop,
+                  start = c(min(lubridate::year(county_data$date)),
+                            min(lubridate::month(county_data$date))),
+                  frequency = 12)
+
+  for (pred in predictors) {
+    yearly_col = county_data %>%
+      group_by(year) %>%
+      summarise(value = first(.data[[pred]]))  
+
+    yearly_ts = ts(yearly_col$value, start = min(yearly_col$year), frequency = 1)
+    td_model = td(yearly_ts ~ monthly_ts, to = 12, conversion = "average")
+    monthly_pred = predict(td_model)
+
+    new_colname = paste0("monthly_", pred)
+    county_data[[new_colname]] = as.numeric(monthly_pred)
+  }
+
+  monthly_response = ts(county_data[[response]],
+                        start = c(min(lubridate::year(county_data$date)),
+                                  min(lubridate::month(county_data$date))),
+                        frequency = 12)
+
+  stl_response = stl(monthly_response, "periodic")
+
+
+  county_data[[paste0("deseason_", response)]] = rowSums(stl_response$time.series[, 2:3])
+  county_data[[paste0("trend_", response)]] = as.numeric(stl_response$time.series[, 2])
+
+  return(county_data)
+}
+```
+
+---
+
+
+```{r}
+
+pop = read_csv("population_il.csv")$percent_change_year_ago
+
+
+raw = read_excel("dataset.xlsx") 
+
+
+names(raw) = c("time", "county", "sexual_crime",
+               "percent_rural", "region", "population", "older_than_65", 
+               "poor_mental_health_days", "excessive_drinking_rate",
+               "adult_smoking_rate", "unemployment_rate", "median_household_income",
+               "uninsured", "mental_health_providers", "sexual_crime_per_10000")
+
+
+raw$date = as.Date(paste0(raw$time, "-01"))
+raw$year = lubridate::year(raw$date)
+
+
+raw$mental_health_providers_per_10000 = raw$mental_health_providers / raw$population * 10000
+
+
+raw_list = split(raw, raw$county)
+```
+
+---
+
+```{r}
+
+predictors = c("poor_mental_health_days", "excessive_drinking_rate",
+               "adult_smoking_rate", "unemployment_rate",
+               "uninsured", "mental_health_providers_per_10000")
+response = "sexual_crime"
+
+
+processed_list = lapply(raw_list, preprocess, pop=pop, predictors=predictors, response=response)
+
+
+processed = bind_rows(processed_list)
+```
+
+---
+
+```{r}
+colnames(processed)
+```
+
+
+```{r}
+predictors <- c("monthly_poor_mental_health_days", 
+                "monthly_excessive_drinking_rate",
+                "monthly_adult_smoking_rate",
+                "monthly_unemployment_rate",
+                "monthly_uninsured",
+                "monthly_mental_health_providers_per_10000")
+
+combination = vector("list", length(predictors))
+for (i in 1:length(predictors))
+  combination[[i]] = c(FALSE, TRUE)
+
+combination = expand.grid(combination)
+combination = as.matrix(combination[-1, ])  
+
+out = matrix(nrow = nrow(combination), ncol = 5)
+
+for (i in 1:nrow(combination)) {
+  f = paste0("trend_sexual_crime ~ ", paste(predictors[combination[i, ]], collapse = "+"))
+  out[i, 1] = f
+
+  model = geeglm(as.formula(f), 
+                 data = processed, 
+                 id = factor(processed$county), 
+                 family = gaussian, 
+                 corstr = "ar1")
+
+  out[i, 2:5] = unname(QIC(model)[c(1, 2, 4, 6)])  
+}
+
+f = out[which.min(out[, 2]), 1] 
+
+model = geeglm(as.formula(f), 
+               data = processed, 
+               id = factor(processed$county), 
+               family = gaussian, 
+               corstr = "ar1")
+
+summary(model)
+QIC(model)
+```
+
+---
+
+
+```{r}
+
+model0 = geeglm(as.formula(paste0("trend_", response, "~1")), 
+                data=processed, id=factor(processed$county), 
+                family=gaussian, corstr="ar1")
+
+
+QIC(model0)
+```
+
+---
+
