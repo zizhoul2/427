@@ -1,0 +1,487 @@
+---
+title: "Time Series Analysis"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+    number_sections: true
+  html_document:
+    toc: true
+    toc_depth: '2'
+    df_print: paged
+  word_document:
+    toc: true
+    toc_depth: '2'
+date: "2025-03-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# regression
+
+```{r}
+library(readxl)
+library(tidyverse)
+data <- read_excel("dataset.xlsx") 
+data <- data |> 
+  select(-c(percent_rural, population, `65 and older`))
+```
+
+```{r}
+g <- lm(sexual_crime ~ poor_mental_health_days+excessive_drinking_rate+adult_smoking_rate+unemployment_rate+median_household_income+uninsured+mental_health_providers, data = data)
+
+summary(g)
+```
+
+# VIF
+
+```{r}
+library(car)
+lm_vif <- lm(sexual_crime ~ poor_mental_health_days+excessive_drinking_rate+adult_smoking_rate+unemployment_rate+median_household_income+uninsured+mental_health_providers, data = data)
+vif(lm_vif)
+```
+
+
+# ACF/PACF/Stationarity
+
+![](Screenshot 2025-03-31 at 17.19.15.png)
+
+## McLean
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+
+# Load Excel file (assumes '工作表3' is the correct sheet name)
+data <- read_excel("dataset.xlsx")
+
+# Convert 'Time' to Date format
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+# Filter for McLean County and arrange by time
+data_McLean <- data %>%
+  filter(County == "McLean") %>%
+  arrange(Time)
+
+# Create time series object
+y_McLean <- ts(data_McLean$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+# Augmented Dickey-Fuller test
+adf.test(y_McLean)
+adf.test(diff(y_McLean))  # First difference stationary
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_McLean, lag.max = 24, main = "ACF Plot for Sexual Crime in McLean County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_McLean, lag.max = 24, main = "PACF Plot for Sexual Crime in McLean County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+## Madison
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+# Convert Time column to Date
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+# Filter for Madison County
+data_Madison <- data %>%
+  filter(County == "Madison") %>%
+  arrange(Time)
+
+# Create time series object
+y_Madison <- ts(data_Madison$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+# ADF tests for stationarity
+adf.test(y_Madison)
+adf.test(diff(y_Madison))  # 1st difference stationarity
+
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Madison, lag.max = 24, main = "ACF Plot for Sexual Crime in Madison County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Madison, lag.max = 24, main = "PACF Plot for Sexual Crime in Madison County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+## Peoria
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Peoria <- data %>%
+  filter(County == "Peoria") %>%
+  arrange(Time)
+
+y_Peoria <- ts(data_Peoria$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Peoria)
+adf.test(diff(y_Peoria))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Peoria, lag.max = 24, main = "ACF Plot for Sexual Crime in Peoria County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Peoria, lag.max = 24, main = "PACF Plot for Sexual Crime in Peoria County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+```{r}
+View(data)
+```
+
+## Rock Island
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Rock_Island <- data %>%
+  filter(County == "Rock Island") %>%
+  arrange(Time)
+
+y_Rock_Island <- ts(data_Rock_Island$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Rock_Island)
+adf.test(diff(y_Rock_Island))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Rock_Island, lag.max = 24, main = "ACF Plot for Sexual Crime in Rock Island County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Rock_Island, lag.max = 24, main = "PACF Plot for Sexual Crime in Rock Island County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+
+## Tazewell
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Tazewell <- data %>%
+  filter(County == "Tazewell") %>%
+  arrange(Time)
+
+y_Tazewell <- ts(data_Tazewell$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Tazewell)
+adf.test(diff(y_Tazewell))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Tazewell, lag.max = 24, main = "ACF Plot for Sexual Crime in Tazewell County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Tazewell, lag.max = 24, main = "PACF Plot for Sexual Crime in Tazewell County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+
+## Winnebago
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Winnebago <- data %>%
+  filter(County == "Winnebago") %>%
+  arrange(Time)
+
+y_Winnebago <- ts(data_Winnebago$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Winnebago)
+adf.test(diff(y_Winnebago))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Winnebago, lag.max = 24, main = "ACF Plot for Sexual Crime in Winnebago County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Winnebago, lag.max = 24, main = "PACF Plot for Sexual Crime in Winnebago County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+## Champaign
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Champaign <- data %>%
+  filter(County == "Champaign") %>%
+  arrange(Time)
+
+y_Champaign <- ts(data_Champaign$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Champaign) # no difference stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Champaign, lag.max = 24, main = "ACF Plot for Sexual Crime in Champaign County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Champaign, lag.max = 24, main = "PACF Plot for Sexual Crime in Champaign County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+
+## DeKalb
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_DeKalb <- data %>%
+  filter(County == "DeKalb") %>%
+  arrange(Time)
+
+y_DeKalb <- ts(data_DeKalb$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_DeKalb) # no difference stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_DeKalb, lag.max = 24, main = "ACF Plot for Sexual Crime in DeKalb County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_DeKalb, lag.max = 24, main = "PACF Plot for Sexual Crime in DeKalb County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+## LaSalle
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_LaSalle <- data %>%
+  filter(County == "LaSalle") %>%
+  arrange(Time)
+
+y_LaSalle <- ts(data_LaSalle$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_LaSalle)
+adf.test(diff(y_LaSalle))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_LaSalle, lag.max = 24, main = "ACF Plot for Sexual Crime in LaSalle County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_LaSalle, lag.max = 24, main = "PACF Plot for Sexual Crime in LaSalle County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+## Sangamon
+
+stationarity tests:
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Sangamon <- data %>%
+  filter(County == "Sangamon") %>%
+  arrange(Time)
+
+y_Sangamon <- ts(data_Sangamon$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Sangamon)
+adf.test(diff(y_Sangamon))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_Sangamon, lag.max = 24, main = "ACF Plot for Sexual Crime in Sangamn County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Sangamon, lag.max = 24, main = "PACF Plot for Sexual Crime in Sangamn County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+## StClair
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_StClair <- data %>%
+  filter(County == "St. Clair") %>%
+  arrange(Time)
+
+y_StClair <- ts(data_StClair$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_StClair)
+adf.test(diff(y_StClair))  # 1st stationarity
+```
+
+acf/pacf: 
+
+```{r}
+# ACF 
+acf(y_StClair, lag.max = 24, main = "ACF Plot for Sexual Crime in StClair County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_StClair, lag.max = 24, main = "PACF Plot for Sexual Crime in StClair County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+
+## Vermilion
+
+```{r}
+library(tseries)
+library(urca)
+library(tidyverse)
+library(readxl)
+data <- read_excel("dataset.xlsx")
+
+data$Time <- as.Date(paste0(data$Time, "-01"))
+
+data_Vermilion <- data %>%
+  filter(County == "Vermilion") %>%
+  arrange(Time)
+
+y_Vermilion <- ts(data_Vermilion$`sexual_crime`, start = c(2021, 1), frequency = 12)
+
+adf.test(y_Vermilion)
+adf.test(diff(y_Vermilion))  # 1st stationarity
+```
+
+```{r}
+# ACF 
+acf(y_Vermilion, lag.max = 24, main = "ACF Plot for Sexual Crime in Vermilion County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+
+# PACF
+pacf(y_Vermilion, lag.max = 24, main = "PACF Plot for Sexual Crime in Vermilion County", xaxt = "n")
+axis(1, at = seq(0, 24, by = 1), labels = seq(0, 24, by = 1))
+```
+
+
+## EDA Results
+
+![](Screenshot 2025-04-29 at 17.34.16.png)
+
